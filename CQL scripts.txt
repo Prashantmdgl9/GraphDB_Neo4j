@@ -1,0 +1,44 @@
+# Load the three files for the Graph DB
+# Run them one by one
+
+LOAD CSV WITH HEADERS FROM "file:///service_providers.csv" AS row
+MERGE (pName:provider_name {name: row.Provider})
+MERGE (pGeog:provider_loc {name: row.Geography})
+MERGE (pServs:provider_serv {name: row.Services})
+MERGE (pName)-[:Located_In]->(pGeog)
+MERGE (pName)-[:provides]->(pServs)
+
+
+LOAD CSV WITH HEADERS FROM "file:///uses.csv" AS row
+MERGE (clientN:client_Name {name: row.Local_Partner})
+MERGE (pName:provider_name {name: row.Provider})
+MERGE (clientN)-[:Uses]->(pName)
+
+
+LOAD CSV WITH HEADERS FROM "file:///similar.csv" AS row
+MERGE (clientN:client_Name {name: row.Local_Partner})
+MERGE (userN:client_Name {name: row.User})
+MERGE (clientN)-[:Is_Similar]->(userN)
+
+
+# To query the graph formed
+
+Match(n) Return(n)
+
+
+
+# Find other partners similar to Boston Locals(an example, change the name to whatever similarity you want to find)
+
+MATCH (boston:client_Name{name:"Boston Locals"})-[:Is_Similar]-(client_Name)
+RETURN client_Name.name
+
+
+#Find products and local providers that are used by similar major players(similar to Boston Locals)
+
+MATCH (boston:client_Name {name:"Boston Locals"}),
+      (boston)-[:Is_Similar]-(partner),
+      (provider:provider_name)-[:Located_In]->(provider_loc),
+      (provider)-[:provides]->(provider_serv),
+      (partner)-[:Uses]->(provider)
+RETURN provider.name, provider_loc.name, collect(partner.name), provider_serv.name, count(*) as count
+ORDER BY count DESC
