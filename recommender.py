@@ -6,13 +6,13 @@ password = "hello@123"
 driver = GraphDatabase.driver(uri, auth=(user, password))
 
 
+
 def recommendations(service = '', location = '', client = ''):
     client_list = []
     if client == '':
         client_list = []
     else:
         client_list = client.split(',')
-
     service_name = service
     location_name = location
     services = "(service)" if service_name == '' else "(service:provider_serv {name: $service_name})"
@@ -24,13 +24,9 @@ def recommendations(service = '', location = '', client = ''):
                   (client:client_Name)-[:Uses]->(provider)
             %s RETURN provider.name AS name, collect(client.name) AS who_takes_services, COUNT(*) AS counts
             ORDER BY counts DESC''' % (locations, services, clients))
-
-
+    
     result = session.run(neo4j_query, service_name=service_name, location_name=location_name, client_list=client_list)
-
     return [{"provider": row["name"], "who_takes_services": row["who_takes_services"], "counts": row["counts"]} for row in result]
-
-
 
 print(recommendations(client='Boston Locals'))
 
